@@ -18,21 +18,30 @@ if ( ! defined( 'ABSPATH' ) ) {
     <div class="address">
         <p>
             <strong><?php esc_html_e( 'Address from map:', 'wc-checkout-map-picker' ); ?></strong><br>
-            <?php echo esc_html( $address ); ?>
+            <?php echo isset( $address ) ? esc_html( $address ) : esc_html_e( 'Not available', 'wc-checkout-map-picker' ); ?>
         </p>
     </div>
     <p>
         <strong><?php esc_html_e( 'Coordinates:', 'wc-checkout-map-picker' ); ?></strong><br>
-        <?php echo esc_html( $latitude ); ?>, <?php echo esc_html( $longitude ); ?>
+        <?php 
+        if ( isset( $latitude ) && isset( $longitude ) ) {
+            echo esc_html( $latitude ) . ', ' . esc_html( $longitude );
+        } else {
+            esc_html_e( 'Not available', 'wc-checkout-map-picker' );
+        }
+        ?>
     </p>
-    <div id="admin-order-map" class="admin-order-map" style="height: 200px; width: 100%;"></div>
-    <p style="text-align: center; margin-top: 10px;">
-        <a href="<?php echo esc_url( $map_link ); ?>" target="_blank" class="button button-primary">
-            <?php esc_html_e( 'Open in Google Maps', 'wc-checkout-map-picker' ); ?>
-        </a>
-    </p>
+    <?php if ( isset( $latitude ) && isset( $longitude ) ) : ?>
+        <div id="admin-order-map" class="admin-order-map" style="height: 200px; width: 100%;"></div>
+        <p style="text-align: center; margin-top: 10px;">
+            <a href="<?php echo esc_url( $map_link ); ?>" target="_blank" class="button button-primary">
+                <?php esc_html_e( 'Open in Google Maps', 'wc-checkout-map-picker' ); ?>
+            </a>
+        </p>
+    <?php endif; ?>
 </div>
 
+<?php if ( isset( $latitude ) && isset( $longitude ) ) : ?>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         var lat = <?php echo json_encode( $latitude ); ?>;
@@ -40,9 +49,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 
         if (lat && lng) {
             var map = L.map('admin-order-map', { zoomControl: false }).setView([lat, lng], 15);
+            map.attributionControl.setPrefix(false); // Remove Leaflet prefix
 
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; OpenStreetMap'
+                attribution: 'by | <a href="https://mohamedyussry.github.io/" target="_blank">mohamed yusrry</a>'
             }).addTo(map);
 
             L.marker([lat, lng]).addTo(map);
@@ -55,3 +65,4 @@ if ( ! defined( 'ABSPATH' ) ) {
         }
     });
 </script>
+<?php endif; ?>

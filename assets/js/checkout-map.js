@@ -8,10 +8,11 @@ jQuery(document).ready(function($) {
     var defaultLng = 46.6753;
 
     var map = L.map('checkout-map').setView([defaultLat, defaultLng], 5);
+    map.attributionControl.setPrefix(false); // Remove Leaflet prefix
     var marker = L.marker([defaultLat, defaultLng], { draggable: true }).addTo(map);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        attribution: 'by | <a href="https://mohamedyussry.github.io/" target="_blank">mohamed yusrry</a>'
     }).addTo(map);
 
     // Add Geosearch control
