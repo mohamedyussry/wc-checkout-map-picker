@@ -2,13 +2,15 @@
 /**
  * Plugin Name: WooCommerce Location Picker (OpenStreetMap)
  * Description: Adds a map to the checkout page for customers to pick their location, with address search and auto-fill.
- * Version: 1.3.3
+ * Version: 1.4.0
  * Author: mohamed yussry
  * Author URI: https://mohamedyussry.github.io/
  * License: GPL-2.0+
  * License URI: http://www.gnu.org/licenses/gpl-2.0.txt
  * Text Domain: wc-checkout-map-picker
  * Domain Path: /languages
+ * WC requires at least: 3.0
+ * WC tested up to: 8.4
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -29,11 +31,21 @@ final class WC_Checkout_Map_Picker {
 	public function __construct() {
 		$this->define_constants();
 		$this->init_hooks();
+		$this->include_settings();
 	}
 
 	private function define_constants() {
 		define( 'WC_MAP_PICKER_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 		define( 'WC_MAP_PICKER_PLUGIN_PATH', plugin_dir_path( __FILE__ ) );
+		define( 'WC_MAP_PICKER_VERSION', '1.4.0' );
+	}
+
+	private function include_settings() {
+		// Add the settings page
+		add_filter( 'woocommerce_get_settings_pages', function ( $settings ) {
+			$settings[] = include( WC_MAP_PICKER_PLUGIN_PATH . 'includes/class-wc-settings-map-picker.php' );
+			return $settings;
+		} );
 	}
 
 	private function init_hooks() {
@@ -68,8 +80,13 @@ final class WC_Checkout_Map_Picker {
 			wp_enqueue_script( 'leaflet-geosearch', 'https://unpkg.com/leaflet-geosearch@3.6.1/dist/geosearch.umd.js', array( 'leaflet' ), '3.6.1', true );
 
 			// Plugin's custom files
-			wp_enqueue_style( 'wc-checkout-map-picker', WC_MAP_PICKER_PLUGIN_URL . 'assets/css/checkout-map.css', array(), '1.3.3' );
-			wp_enqueue_script( 'wc-checkout-map-picker', WC_MAP_PICKER_PLUGIN_URL . 'assets/js/checkout-map.js', array( 'jquery', 'leaflet', 'leaflet-geosearch' ), '1.3.3', true );
+			wp_enqueue_style( 'wc-checkout-map-picker', WC_MAP_PICKER_PLUGIN_URL . 'assets/css/checkout-map.css', array(), WC_MAP_PICKER_VERSION );
+			wp_enqueue_script( 'wc-checkout-map-picker', WC_MAP_PICKER_PLUGIN_URL . 'assets/js/checkout-map.js', array( 'jquery', 'leaflet', 'leaflet-geosearch' ), WC_MAP_PICKER_VERSION, true );
+            
+            // Pass settings to script
+            wp_localize_script( 'wc-checkout-map-picker', 'wc_map_picker_params', array(
+                'auto_locate' => get_option( 'wc_map_picker_auto_locate' ) === 'yes'
+            ) );
 		}
 	}
 
@@ -78,17 +95,14 @@ final class WC_Checkout_Map_Picker {
 		if ( ( 'post.php' == $hook || 'post-new.php' == $hook ) && 'shop_order' === $post_type ) {
 			wp_enqueue_style( 'leaflet', 'https://unpkg.com/leaflet@1.7.1/dist/leaflet.css', array(), '1.7.1' );
 			wp_enqueue_script( 'leaflet', 'https://unpkg.com/leaflet@1.7.1/dist/leaflet.js', array(), '1.7.1', true );
-			wp_enqueue_style( 'wc-checkout-map-picker-admin', WC_MAP_PICKER_PLUGIN_URL . 'assets/css/checkout-map.css', array(), '1.3.3' );
+			wp_enqueue_style( 'wc-checkout-map-picker-admin', WC_MAP_PICKER_PLUGIN_URL . 'assets/css/checkout-map.css', array(), WC_MAP_PICKER_VERSION );
 		}
 	}
 
 	public function add_checkout_map( $checkout ) {
-        // Compatibility fix: Ensure we have the checkout object.
         if ( ! is_object( $checkout ) ) {
             $checkout = WC()->checkout;
         }
-
-        // If checkout is still not an object, something is very wrong. Don't proceed.
         if ( ! is_object( $checkout ) ) {
             return;
         }
@@ -99,7 +113,6 @@ final class WC_Checkout_Map_Picker {
 		echo '<div id="checkout-map" style="height: 350px; width: 100%; margin-bottom: 15px;"></div>';
 		echo '<p><button type="button" id="get-current-location" class="button alt">' . esc_html__( 'Get My Current Location', 'wc-checkout-map-picker' ) . '</button></p>';
 		
-		// Add hidden fields for latitude, longitude, and full address
 		woocommerce_form_field( 'latitude', array( 'type' => 'hidden' ), $checkout->get_value( 'latitude' ) );
 		woocommerce_form_field( 'longitude', array( 'type' => 'hidden' ), $checkout->get_value( 'longitude' ) );
 		woocommerce_form_field( 'full_address', array( 'type' => 'hidden' ), $checkout->get_value( 'full_address' ) );
@@ -108,10 +121,7 @@ final class WC_Checkout_Map_Picker {
 	}
 
 	public function checkout_process_validation() {
-		// Only validate if the map was supposed to be shown.
-		if ( ! empty( $_POST['is_pick_from_map_checkout'] ) && empty( $_POST['latitude'] ) ) {
-			wc_add_notice( __( 'Please select your location on the map.', 'wc-checkout-map-picker' ), 'error' );
-		}
+		// Optional: Add validation if location is made mandatory in settings later
 	}
 
 	public function update_order_meta( $order_id ) {

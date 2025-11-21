@@ -125,6 +125,19 @@ jQuery(document).ready(function($) {
             alert('Geolocation is not supported by this browser.');
         }
     });
+
+    // Auto-get location on page load if enabled
+    if (wc_map_picker_params.auto_locate) {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function(position) {
+                var lat = position.coords.latitude;
+                var lng = position.coords.longitude;
+                processResult(lat, lng, 'Current Location');
+            }, function(error) {
+                console.warn('Geolocation failed or was denied:', error.message);
+            });
+        }
+    }
     
     // When user toggles shipping address, ensure map fields are still valid
     $('body').on('change', '#ship-to-different-address-checkbox', function() {
